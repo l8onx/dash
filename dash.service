@@ -1,0 +1,24 @@
+[Unit]
+Description=Dash Portal — OpenClaw Agent Report Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/dash
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=DATA_DIR=/data/reports
+Environment=DASH_URL=https://dash.leightonjames.com
+ExecStart=/usr/bin/node /opt/dash/server.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dash-portal
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

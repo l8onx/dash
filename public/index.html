@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dash — OpenClaw Reports</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { slate: { 950: '#020617' } } } }
+    }
+  </script>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    body { background-color: #0f172a; }
+    .card-hover { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .tag-pill { display: inline-block; border-radius: 9999px; padding: 2px 10px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .live-dot { animation: pulse-dot 2s infinite; }
+    /* Teal colour — not in Tailwind CDN by default, use inline styles where needed */
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 font-sans" x-data="dashApp()" x-init="init()">
+
+  <!-- Delete confirmation modal -->
+  <div
+    x-show="confirmDelete !== null"
+    x-transition.opacity
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    @click.self="confirmDelete = null"
+  >
+    <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+      <h3 class="text-lg font-bold text-white mb-2">Delete report?</h3>
+      <p class="text-slate-400 text-sm mb-6">This cannot be undone. The report will be permanently removed.</p>
+      <div class="flex gap-3">
+        <button @click="confirmDelete = null" class="flex-1 px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-semibold transition-colors">Cancel</button>
+        <button @click="deleteReport(confirmDelete)" class="flex-1 px-4 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white text-sm font-semibold transition-colors">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Top Bar ── -->
+  <header class="sticky top-0 z-40 bg-slate-900 border-b border-slate-700 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl font-black tracking-tight text-white">⚡ Dash</span>
+        <span class="text-slate-400 text-sm hidden sm:block">OpenClaw Report Portal</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+          <span class="live-dot inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="hidden sm:block">Auto-refresh 60s</span>
+        </div>
+        <input
+          type="text"
+          x-model="search"
+          placeholder="Search…"
+          class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-32 sm:w-48"
+        />
+        <button @click="loadReports()" class="text-slate-400 hover:text-white transition-colors" title="Refresh">
+          <svg class="w-5 h-5" :class="{'animate-spin': loading}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 01-15.357-2m15.357 2H15"/>
+          </svg>
+        </button>
+        <button @click="logout()" class="text-slate-500 hover:text-slate-300 text-xs transition-colors hidden sm:block" title="Sign out">Sign out</button>
+      </div>
+    </div>
+
+    <!-- ── Agent Filter Tabs ── -->
+    <div class="max-w-7xl mx-auto px-4 pb-0 overflow-x-auto scrollbar-none">
+      <div class="flex gap-1 min-w-max">
+        <template x-for="tab in agentTabs" :key="tab.key">
+          <button
+            @click="activeAgent = tab.key"
+            :class="[
+              'px-4 py-2.5 text-sm font-semibold transition-colors flex items-center gap-1.5 border-b-2 whitespace-nowrap',
+              activeAgent === tab.key ? `border-current text-current` : 'border-transparent text-slate-400 hover:text-slate-200'
+            ]"
+            :style="activeAgent === tab.key ? `color: ${tab.hex}` : ''"
+          >
+            <span x-text="tab.icon"></span>
+            <span x-text="tab.label"></span>
+            <span
+              x-show="countFor(tab.key) > 0"
+              class="bg-slate-700 text-slate-300 text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center"
+              x-text="countFor(tab.key)"
+            ></span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ── -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- Loading skeleton -->
+    <div x-show="loading && reports.length === 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <template x-for="i in 6">
+        <div class="bg-slate-800 rounded-xl p-5 animate-pulse h-44"></div>
+      </template>
+    </div>
+
+    <!-- Empty state -->
+    <div x-show="!loading && filteredReports.length === 0" class="flex flex-col items-center justify-center py-24 text-slate-500">
+      <span class="text-6xl mb-4">📭</span>
+      <p class="text-lg font-semibold">No reports yet</p>
+      <p class="text-sm mt-1">Reports posted by agents will appear here automatically.</p>
+    </div>
+
+    <!-- Report Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <template x-for="report in filteredReports" :key="report.id">
+        <div class="card-hover bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col gap-3 cursor-pointer relative group"
+          @click="openReport(report.id)"
+        >
+          <!-- Delete button (top-right, visible on hover) -->
+          <button
+            @click.stop="confirmDelete = report.id"
+            class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-900/20"
+            title="Delete report"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+
+          <!-- Header row -->
+          <div class="flex items-start justify-between gap-2 pr-6">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span class="text-xl flex-shrink-0" x-text="agentIcon(report.agent)"></span>
+              <div class="min-w-0">
+                <h3 class="font-bold text-slate-100 text-sm leading-tight truncate" x-text="report.title"></h3>
+                <p x-show="report.subtitle" class="text-xs text-slate-400 truncate mt-0.5" x-text="report.subtitle"></p>
+              </div>
+            </div>
+            <span
+              class="flex-shrink-0 text-xs font-bold uppercase px-2 py-0.5 rounded-full"
+              :style="`background: ${agentBg(report.agent)}; color: ${agentHex(report.agent)}`"
+              x-text="report.agent === 'wellbeing' ? 'vita' : report.agent"
+            ></span>
+          </div>
+
+          <!-- Updated badge -->
+          <div x-show="report.updatedAt" class="flex items-center gap-1 text-[10px] text-amber-400">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span>Updated <span x-text="formatTime(report.updatedAt)"></span></span>
+          </div>
+
+          <!-- Timestamp -->
+          <div class="text-xs text-slate-500 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span x-text="formatTime(report.timestamp)"></span>
+          </div>
+
+          <!-- Tags -->
+          <div class="flex flex-wrap gap-1.5">
+            <template x-for="tag in (report.tags || [])" :key="tag">
+              <span class="tag-pill bg-slate-700 text-slate-300" x-text="tag"></span>
+            </template>
+          </div>
+
+          <!-- Footer -->
+          <div class="mt-auto flex items-center justify-between pt-2 border-t border-slate-700">
+            <span class="text-xs text-slate-600 truncate" x-text="report.id"></span>
+            <button
+              @click.stop="openReport(report.id)"
+              class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+              :style="`background: ${agentBg(report.agent)}; color: ${agentHex(report.agent)}`"
+            >
+              View →
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-10 text-center text-slate-600 text-xs">
+      <span x-text="`${filteredReports.length} report${filteredReports.length !== 1 ? 's' : ''} shown`"></span>
+      <span class="mx-2">·</span>
+      <span x-text="`Last refresh: ${lastRefresh}`"></span>
+    </div>
+  </main>
+
+  <script>
+    // Agent config — all colours via hex to avoid Tailwind purge issues
+    const AGENTS = {
+      all:       { icon: '🌐', label: 'All',       hex: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+      fiona:     { icon: '💹', label: 'Fiona',     hex: '#34d399', bg: 'rgba(52,211,153,0.15)'  },
+      reel:      { icon: '🎬', label: 'Reel',      hex: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
+      dilan:     { icon: '🚀', label: 'Dilan',     hex: '#38bdf8', bg: 'rgba(56,189,248,0.15)'  },
+      lilani:    { icon: '🌸', label: 'Lilani',    hex: '#fb7185', bg: 'rgba(251,113,133,0.15)' },
+      homer:     { icon: '🏠', label: 'Homer',     hex: '#fbbf24', bg: 'rgba(251,191,36,0.15)'  },
+      vigil:     { icon: '🛡️', label: 'Vigil',    hex: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+      cody:      { icon: '💻', label: 'Cody',      hex: '#818cf8', bg: 'rgba(129,140,248,0.15)' },
+      vita:      { icon: '🧘', label: 'Vita',      hex: '#2dd4bf', bg: 'rgba(45,212,191,0.15)'  },
+      wellbeing: { icon: '🧘', label: 'Vita',      hex: '#2dd4bf', bg: 'rgba(45,212,191,0.15)'  },
+    };
+
+    function dashApp() {
+      return {
+        reports:       [],
+        loading:       true,
+        activeAgent:   'all',
+        search:        '',
+        lastRefresh:   'never',
+        refreshTimer:  null,
+        confirmDelete: null,
+
+        agentTabs: [
+          { key: 'all',    ...AGENTS.all    },
+          { key: 'fiona',  ...AGENTS.fiona  },
+          { key: 'reel',   ...AGENTS.reel   },
+          { key: 'dilan',  ...AGENTS.dilan  },
+          { key: 'lilani', ...AGENTS.lilani },
+          { key: 'homer',  ...AGENTS.homer  },
+          { key: 'vigil',  ...AGENTS.vigil  },
+          { key: 'cody',   ...AGENTS.cody   },
+          { key: 'vita',   ...AGENTS.vita   },
+        ],
+
+        async init() {
+          // Auth gate
+          try {
+            const r = await fetch('/api/auth/verify');
+            const d = await r.json();
+            if (!d.authenticated) { location.href = '/login'; return; }
+          } catch { location.href = '/login'; return; }
+
+          this.loadReports();
+          this.refreshTimer = setInterval(() => this.loadReports(), 60000);
+        },
+
+        async loadReports() {
+          this.loading = true;
+          try {
+            const res    = await fetch('/api/reports');
+            if (res.status === 401) { location.href = '/login'; return; }
+            this.reports = await res.json();
+            this.lastRefresh = new Date().toLocaleTimeString();
+          } catch (e) {
+            console.error('Failed to load reports:', e);
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        async deleteReport(id) {
+          this.confirmDelete = null;
+          try {
+            const res = await fetch(`/api/reports/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+              this.reports = this.reports.filter(r => r.id !== id);
+            }
+          } catch (e) {
+            console.error('Failed to delete report:', e);
+          }
+        },
+
+        async logout() {
+          await fetch('/api/auth/logout', { method: 'DELETE' }).catch(() => {});
+          location.href = '/login';
+        },
+
+        get filteredReports() {
+          let r = this.reports;
+          // treat vita and wellbeing as the same filter
+          if (this.activeAgent !== 'all') {
+            const key = this.activeAgent;
+            r = r.filter(x => x.agent === key || (key === 'vita' && x.agent === 'wellbeing'));
+          }
+          if (this.search.trim()) {
+            const q = this.search.toLowerCase();
+            r = r.filter(x =>
+              x.title.toLowerCase().includes(q) ||
+              (x.subtitle || '').toLowerCase().includes(q) ||
+              (x.tags || []).some(t => t.toLowerCase().includes(q))
+            );
+          }
+          return r;
+        },
+
+        countFor(agent) {
+          if (agent === 'all') return this.reports.length;
+          if (agent === 'vita') return this.reports.filter(r => r.agent === 'vita' || r.agent === 'wellbeing').length;
+          return this.reports.filter(r => r.agent === agent).length;
+        },
+
+        agentIcon(agent) { return (AGENTS[agent] || AGENTS.vigil).icon; },
+        agentHex(agent)  { return (AGENTS[agent] || AGENTS.vigil).hex;  },
+        agentBg(agent)   { return (AGENTS[agent] || AGENTS.vigil).bg;   },
+
+        formatTime(iso) {
+          if (!iso) return '';
+          try {
+            return new Date(iso).toLocaleString(undefined, {
+              month: 'short', day: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+            });
+          } catch { return iso; }
+        },
+
+        openReport(id) { window.location.href = `/reports/${id}`; }
+      };
+    }
+  </script>
+</body>
+</html>
