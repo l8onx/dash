@@ -41,8 +41,8 @@ app.include_router(reports.router)
 # ── SPA / legacy HTML routes ──────────────────────────────────────────────────
 # The public/ directory contains the legacy HTML until the React/Vite frontend
 # replaces it in the next session.
-# Resolve relative to the repo root:  <repo>/public/  or inside Docker:  /app/public/
-_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+# Resolve public/ relative to the package dir — one level up from app/ to reach /app/public/
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _PUBLIC_DIR = os.path.join(_REPO_ROOT, "public")
 
 
