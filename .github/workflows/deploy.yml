@@ -50,8 +50,8 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 192.168.0.50
-          username: deploy
+          host: ${{ secrets.LXC_HOST }}
+          username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/dash
