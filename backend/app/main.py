@@ -56,7 +56,7 @@ def serve_login():
 
 
 @app.get("/reports/{report_id}")
-def serve_report(_report_id: str):
+def serve_report(report_id: str):
     return _html("report.html")
 
 
