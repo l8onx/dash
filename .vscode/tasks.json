@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Deploy: push to main (triggers CI/CD)",
+      "type": "shell",
+      "command": "git push origin main",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Deploy: build Docker image locally",
+      "type": "shell",
+      "command": "docker build -f backend/Dockerfile -t ghcr.io/l8onx/dash:local .",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Deploy: run locally (dev)",
+      "type": "shell",
+      "command": "DATA_DIR=/tmp/dash-data PORT=3001 DASH_URL=http://localhost:3001 uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 3001",
+      "group": "test",
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Deploy: health check (production)",
+      "type": "shell",
+      "command": "curl -sf http://192.168.0.50:3000/api/health | python3 -m json.tool",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Deploy: view CI/CD run status",
+      "type": "shell",
+      "command": "gh run list --repo l8onx/dash --limit 5",
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Deploy: rollback (enter SHA when prompted)",
+      "type": "shell",
+      "command": "read -p 'Rollback to SHA: ' SHA && ssh -i ~/.ssh/id_ed25519 root@192.168.0.50 \"echo $(cat ~/.ssh/id_ed25519) > /dev/null; cd /opt/dash && docker pull ghcr.io/l8onx/dash:$SHA && docker tag ghcr.io/l8onx/dash:$SHA ghcr.io/l8onx/dash:latest && docker compose up -d\"",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}
