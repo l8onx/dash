@@ -1,0 +1,16 @@
+services:
+  dash:
+    build:
+      context: .          # project root — Dockerfile can reach public/ and backend/
+      dockerfile: backend/Dockerfile
+    image: ghcr.io/l8onx/dash:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      PORT: ${PORT:-3000}
+      DATA_DIR: ${DATA_DIR:-/data}
+      DASH_URL: ${DASH_URL:-http://localhost:3000}
+      DASH_PSK: ${DASH_PSK:-}
