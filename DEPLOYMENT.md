@@ -59,7 +59,7 @@ Set in `/opt/dash/.env` on the LXC:
 |----------|---------|-------------|
 | `PORT` | `3000` | Server port |
 | `DATA_DIR` | `/data/reports` | Report storage path |
-| `DASH_URL` | `http://192.168.0.50:3000` | Public URL used in report links |
+| `DASH_URL` | `https://dash.leightonjames.com` | Public URL used in report links |
 | `DASH_PSK` | *(empty = auth disabled)* | PSK token for API auth |
 
 ## GitHub Actions secrets
