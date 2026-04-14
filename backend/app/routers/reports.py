@@ -21,7 +21,8 @@ router = APIRouter()
 logger = logging.getLogger("dash.reports")
 
 VALID_AGENTS = [
-    "fiona", "reel", "dilan", "lilani", "homer", "vigil", "cody", "vita", "wellbeing",
+    "fiona", "reel", "dilan", "lilani", "homer", "sydney", "cody", "vita", "wellbeing",
+    "clawdette", "sage", "clawmaster",
 ]
 
 

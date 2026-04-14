@@ -6,7 +6,8 @@ from ..config import settings
 router = APIRouter()
 
 VALID_AGENTS = [
-    "fiona", "reel", "dilan", "lilani", "homer", "vigil", "cody", "vita", "wellbeing",
+    "fiona", "reel", "dilan", "lilani", "homer", "sydney", "cody", "vita", "wellbeing",
+    "clawdette", "sage", "clawmaster",
 ]
 
 
@@ -36,7 +37,10 @@ def get_schema():
             "dilan":     {"icon": "🚀", "color": "sky",     "description": "Career & jobs"},
             "lilani":    {"icon": "🌸", "color": "rose",    "description": "Personal assistant"},
             "homer":     {"icon": "🏠", "color": "amber",   "description": "Home & family"},
-            "vigil":     {"icon": "🛡️", "color": "slate",  "description": "Infrastructure & ops"},
+            "sydney":    {"icon": "🖧",  "color": "slate",  "description": "Infrastructure & ops"},
+            "clawdette": {"icon": "🧭", "color": "cyan",   "description": "Orchestrator"},
+            "sage":      {"icon": "🔮", "color": "purple", "description": "Knowledge & research"},
+            "clawmaster":{"icon": "🛠️", "color": "gray",   "description": "OpenClaw ops"},
             "cody":      {"icon": "💻", "color": "indigo",  "description": "Coding & dev orchestration"},
             "vita":      {"icon": "🧘", "color": "teal",    "description": "Health & wellbeing"},
             "wellbeing": {"icon": "🧘", "color": "teal",    "description": "Alias for vita"},
