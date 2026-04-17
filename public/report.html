@@ -55,6 +55,17 @@
     .md-content table tr:nth-child(even) td { background: #172033; }
 
     .mermaid svg { max-width: 100%; }
+    .mermaid-diagram { cursor: pointer; position: relative; }
+    .mermaid-diagram::after { content: '🔍 Click to zoom'; position: absolute; top: 8px; right: 12px; font-size: 0.7rem; color: #64748b; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    .mermaid-diagram:hover::after { opacity: 1; }
+
+    /* Mermaid zoom modal */
+    #mermaid-modal { display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); justify-content: center; align-items: center; }
+    #mermaid-modal.active { display: flex; }
+    #mermaid-modal-inner { position: relative; max-width: 95vw; max-height: 95vh; overflow: auto; background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 24px; }
+    #mermaid-modal-inner svg { max-width: none; width: auto; height: auto; min-width: 60vw; }
+    #mermaid-modal-close { position: absolute; top: 8px; right: 12px; background: #1e293b; border: 1px solid #475569; color: #e2e8f0; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: 0.85rem; z-index: 1; }
+    #mermaid-modal-close:hover { background: #334155; }
     .section-card { transition: box-shadow 0.15s; }
     .metric-up   { color: #34d399; }
     .metric-down { color: #f87171; }
@@ -418,5 +429,32 @@
       return escHtml(str);
     }
   </script>
+<!-- Mermaid zoom modal -->
+<div id="mermaid-modal">
+  <div id="mermaid-modal-inner">
+    <button id="mermaid-modal-close">✕ Close</button>
+    <div id="mermaid-modal-content"></div>
+  </div>
+</div>
+<script>
+(function() {
+  const modal = document.getElementById('mermaid-modal');
+  const content = document.getElementById('mermaid-modal-content');
+  const closeBtn = document.getElementById('mermaid-modal-close');
+
+  document.addEventListener('click', function(e) {
+    const diagram = e.target.closest('.mermaid-diagram');
+    if (!diagram) return;
+    const svg = diagram.querySelector('svg');
+    if (!svg) return;
+    content.innerHTML = svg.outerHTML;
+    modal.classList.add('active');
+  });
+
+  closeBtn.addEventListener('click', function() { modal.classList.remove('active'); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('active'); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') modal.classList.remove('active'); });
+})();
+</script>
 </body>
 </html>
