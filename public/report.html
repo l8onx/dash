@@ -310,7 +310,16 @@
             await this.renderSection(section, contentEl, i);
           }
 
-          await mermaid.run({ querySelector: '.mermaid-diagram' });
+          try {
+            await mermaid.run({ querySelector: '.mermaid-diagram' });
+          } catch (e) {
+            console.error('Mermaid render error:', e);
+            document.querySelectorAll('.mermaid-diagram').forEach(el => {
+              if (!el.querySelector('svg')) {
+                el.innerHTML = '<pre style="color:#f87171;font-size:0.8rem;white-space:pre-wrap">Diagram render failed: ' + (e.message || e) + '</pre>';
+              }
+            });
+          }
         },
 
         async renderSection(section, el, idx) {
