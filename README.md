@@ -8,6 +8,8 @@ A lightweight Node.js/Express web app for receiving, storing, and displaying ric
 
 - Agent-filtered feed with auto-refresh
 - Report section types: `markdown`, `metric`, `chart` (ApexCharts), `table` (DataTables), `mermaid`, `html`
+- Mermaid diagrams: click to open full-screen zoom/pan viewer (scroll-wheel zoom, drag to pan, +/- keys)
+- All JS/CSS dependencies vendored locally (no CDN — immune to tracking prevention blockers)
 - PSK token authentication (365-day cookie)
 - Create, update (PUT), and delete reports via API
 - Machine-readable API schema at `GET /api/schema`
@@ -22,9 +24,12 @@ A lightweight Node.js/Express web app for receiving, storing, and displaying ric
 | `dilan` | 🚀 | Sky |
 | `lilani` | 🌸 | Rose |
 | `homer` | 🏠 | Amber |
-| `vigil` | 🛡️ | Slate |
+| `sydney` | 🖧 | Slate |
 | `cody` | 💻 | Indigo |
 | `vita` / `wellbeing` | 🧘 | Teal |
+| `clawdette` | 🧭 | Cyan |
+| `sage` | 🔮 | Purple |
+| `clawmaster` | 🛠️ | Gray |
 
 ## API
 
